@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import mysql.connector
-import time
 import plotly.express as px
 
 # Database credentials
@@ -37,8 +36,8 @@ def show_home_page():
     st.title("IoT-Based Smart Irrigation System")
     st.image("irrigation.jpeg", use_container_width=True)
     st.write(
-        "This project is designed to automate irrigation by monitoring soil moisture, temperature, and humidity "
-        "using IoT sensors. The collected data is processed to optimize water usage, improving agricultural efficiency."
+        "This project automates irrigation by monitoring soil moisture, temperature, and humidity "
+        "using IoT sensors. The collected data optimizes water usage, improving agricultural efficiency."
     )
 
 # If not logged in, show home page and stop execution
@@ -51,7 +50,10 @@ def fetch_latest_data():
     try:
         conn = mysql.connector.connect(**DB_CONFIG)
         cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT id, dateTime, temp, humi, moi FROM Irrigation ORDER BY id DESC LIMIT 1")
+        cursor.execute("""
+            SELECT id, dateTime, temp, humi, moi, moi2, moi3, moi4 
+            FROM Irrigation ORDER BY id DESC LIMIT 1
+        """)
         latest_data = cursor.fetchone()
         cursor.close()
         conn.close()
@@ -65,7 +67,10 @@ def fetch_all_data():
     try:
         conn = mysql.connector.connect(**DB_CONFIG)
         cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT dateTime, temp, humi, moi FROM Irrigation ORDER BY dateTime ASC")
+        cursor.execute("""
+            SELECT dateTime, temp, humi, moi, moi2, moi3, moi4 
+            FROM Irrigation ORDER BY dateTime ASC
+        """)
         data = cursor.fetchall()
         cursor.close()
         conn.close()
@@ -73,17 +78,6 @@ def fetch_all_data():
     except mysql.connector.Error as e:
         st.error(f"Error connecting to database: {e}")
         return None
-def update_motor_state(state):
-    try:
-        conn = mysql.connector.connect(**DB_CONFIG)
-        cursor = conn.cursor()
-        cursor.execute("UPDATE MotorControl SET state = %s WHERE id = 1", (state,))
-        conn.commit()
-        cursor.close()
-        conn.close()
-        st.success(f"Motor state updated successfully to {'ON' if state == 1 else 'OFF'}")
-    except mysql.connector.Error as e:
-        st.error(f"Error updating motor state: {e}")
 
 # Main content after login
 st.title("IoT Sensor Dashboard")
@@ -96,14 +90,20 @@ with tabs[0]:
     
     if latest_data:
         st.write(f"**Latest Data Timestamp:** {latest_data['dateTime']}")
-        col1, col2, col3 = st.columns(3)
         
+        col1, col2, col3, col4, col5, col6 = st.columns(6)
         with col1:
             st.metric(label="Temperature", value=f"{latest_data['temp']}°C")
         with col2:
             st.metric(label="Humidity", value=f"{latest_data['humi']}%")
         with col3:
-            st.metric(label="Moisture", value=f"{latest_data['moi']}%")
+            st.metric(label="Moisture 1", value=f"{latest_data['moi']}%")
+        with col4:
+            st.metric(label="Moisture 2", value=f"{latest_data['moi2']}%")
+        with col5:
+            st.metric(label="Moisture 3", value=f"{latest_data['moi3']}%")
+        with col6:
+            st.metric(label="Moisture 4", value=f"{latest_data['moi4']}%")
     else:
         st.error("Failed to fetch latest sensor data.")
 
@@ -114,10 +114,12 @@ with tabs[1]:
     
     if data is not None and not data.empty:
         st.write("### Sensor Data Trends")
-        fig = px.line(data.melt(id_vars=['dateTime'], var_name='Sensor', value_name='Value'), 
-                      x='dateTime', y='Value', color='Sensor', 
-                      title='Sensor Data Over Time', 
-                      labels={'Value': 'Sensor Readings', 'dateTime': 'Timestamp'})
+        fig = px.line(
+            data.melt(id_vars=['dateTime'], var_name='Sensor', value_name='Value'),
+            x='dateTime', y='Value', color='Sensor',
+            title='Sensor Data Over Time',
+            labels={'Value': 'Sensor Readings', 'dateTime': 'Timestamp'}
+        )
         st.plotly_chart(fig, use_container_width=True)
         
         st.write("### Raw Data")
