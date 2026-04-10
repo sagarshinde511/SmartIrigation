@@ -52,8 +52,9 @@ def fetch_latest_data():
     try:
         conn = mysql.connector.connect(**DB_CONFIG)
         cursor = conn.cursor(dictionary=True)
-        # Updated query to match your new schema: coGas instead of moi3/4
-        cursor.execute("SELECT id, dateTime, temp, humi, moi, moi2, coGas FROM Irrigation ORDER BY id DESC LIMIT 1")
+        # Added SunLight to the SELECT statement
+        query = "SELECT id, dateTime, temp, humi, moi, moi2, coGas, SunLight FROM Irrigation ORDER BY id DESC LIMIT 1"
+        cursor.execute(query)
         latest_data = cursor.fetchone()
         cursor.close()
         conn.close()
@@ -66,12 +67,22 @@ def fetch_all_data():
     try:
         conn = mysql.connector.connect(**DB_CONFIG)
         cursor = conn.cursor(dictionary=True)
-        # Updated query to match your new schema
-        cursor.execute("SELECT dateTime, temp, humi, moi, moi2, coGas FROM Irrigation ORDER BY dateTime ASC")
+        # Added SunLight to the SELECT statement
+        query = "SELECT dateTime, temp, humi, moi, moi2, coGas, SunLight FROM Irrigation ORDER BY dateTime ASC"
+        cursor.execute(query)
         data = cursor.fetchall()
         cursor.close()
         conn.close()
-        return pd.DataFrame(data)
+        
+        df = pd.DataFrame(data)
+        
+        # Convert VARCHAR columns to numeric for plotting
+        cols_to_fix = ['temp', 'humi', 'moi', 'moi2', 'coGas', 'SunLight']
+        for col in cols_to_fix:
+            if col in df.columns:
+                df[col] = pd.to_numeric(df[col], errors='coerce')
+        
+        return df
     except mysql.connector.Error as e:
         st.error(f"Error connecting to database: {e}")
         return None
@@ -87,13 +98,15 @@ with tabs[0]:
     latest_data = fetch_latest_data()
     if latest_data:
         st.write(f"**Latest Data Timestamp:** {latest_data['dateTime']}")
-        # 5 Columns for the 5 active sensors
-        col1, col2, col3, col4, col5 = st.columns(5)
+        
+        # 6 Columns for the 6 active sensors in your table
+        col1, col2, col3, col4, col5, col6 = st.columns(6)
         with col1: st.metric(label="Temp", value=f"{latest_data['temp']}°C")
         with col2: st.metric(label="Humidity", value=f"{latest_data['humi']}%")
         with col3: st.metric(label="Moi 1", value=f"{latest_data['moi']}%")
         with col4: st.metric(label="Moi 2", value=f"{latest_data['moi2']}%")
         with col5: st.metric(label="CO Gas", value=f"{latest_data['coGas']}")
+        with col6: st.metric(label="Sunlight", value=f"{latest_data['SunLight']}")
     else:
         st.error("No data found in the 'Irrigation' table.")
 
@@ -102,7 +115,7 @@ with tabs[1]:
     st.subheader("Sensor Trends")
     data = fetch_all_data()
     if data is not None and not data.empty:
-        # Melt dataframe for Plotly (all columns except dateTime)
+        # Melt dataframe for Plotly
         fig = px.line(
             data.melt(id_vars=['dateTime'], var_name='Sensor', value_name='Value'),
             x='dateTime', y='Value', color='Sensor',
