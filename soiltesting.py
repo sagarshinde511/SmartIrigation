@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import mysql.connector
 import plotly.express as px
+import requests  # Ensure you add 'import requests' at the top of your script
 
 # Database credentials
 DB_CONFIG = {
@@ -128,24 +129,40 @@ with tabs[1]:
     else:
         st.error("No data available to plot.")
 
+
 # Tab 3: Controls
 with tabs[2]:
     st.subheader("Manual Actuator Controls")
-    st.info("Set binary values (0/1) for hardware components.")
+    st.info("Directly control hardware via the AE Project Hub API.")
     
-    c1, c2, c3 = st.columns(3)
+    c1, c2 = st.columns(2)
     
     with c1:
-        win_val = st.slider("Window Opening (%)", 0, 100, 50)
+        st.write("### 💧 Water Pump")
+        # Using buttons instead of sliders for a cleaner toggle feel
+        if st.button("Turn Pump ON"):
+            response = requests.get("https://aeprojecthub.in/updateFlag1.php?id=1&val=1")
+            if response.status_code == 200:
+                st.success("Pump Command: ON Sent")
+            else:
+                st.error("Failed to reach server.")
         
-    with c2:
-        pump_val = st.slider("Water Pump (0=OFF, 1=ON)", 0, 1, 0)
-        st.markdown(f"**Pump:** {'🟢 ON' if pump_val == 1 else '🔴 OFF'}")
-        
-    with c3:
-        fan_val = st.slider("Exhaust Fan (0=OFF, 1=ON)", 0, 1, 0)
-        st.markdown(f"**Fan:** {'🟢 ON' if fan_val == 1 else '🔴 OFF'}")
+        if st.button("Turn Pump OFF"):
+            # Per your note: "post 1 from url to off it"
+            response = requests.get("https://aeprojecthub.in/updateFlag1.php?id=1&val=1") 
+            st.warning("Pump Command: OFF Sent")
 
-    if st.button("Submit Changes"):
-        # Placeholder for database update logic
-        st.success(f"Values set: Window={win_val}, Pump={pump_val}, Fan={fan_val}")
+    with c2:
+        st.write("### 🌀 Exhaust Fan")
+        if st.button("Turn Fan ON"):
+            # Per your note: "add 2 to turn on fan"
+            response = requests.get("https://aeprojecthub.in/updateFlag1.php?id=1&val=2")
+            st.success("Fan Command: ON Sent")
+            
+        if st.button("Turn Fan OFF"):
+            # Per your note: "post 3 to turn off fan"
+            response = requests.get("https://aeprojecthub.in/updateFlag1.php?id=1&val=3")
+            st.warning("Fan Command: OFF Sent")
+
+    st.divider()
+    st.caption("Note: 'post 4' was mentioned for an undefined action, ensure your hardware is programmed to listen for these specific flag values.")
