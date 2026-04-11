@@ -149,19 +149,19 @@ with tabs[2]:
         
         if st.button("Turn Pump OFF"):
             # Per your note: "post 1 from url to off it"
-            response = requests.get("https://aeprojecthub.in/updateFlag1.php?id=5&val=1") 
+            response = requests.get("https://aeprojecthub.in/updateFlag1.php?id=5&val=2") 
             st.warning("Pump Command: OFF Sent")
 
     with c2:
         st.write("### 🌀 Exhaust Fan")
         if st.button("Turn Fan ON"):
             # Per your note: "add 2 to turn on fan"
-            response = requests.get("https://aeprojecthub.in/updateFlag1.php?id=5&val=2")
+            response = requests.get("https://aeprojecthub.in/updateFlag1.php?id=5&val=3")
             st.success("Fan Command: ON Sent")
             
         if st.button("Turn Fan OFF"):
             # Per your note: "post 3 to turn off fan"
-            response = requests.get("https://aeprojecthub.in/updateFlag1.php?id=5&val=3")
+            response = requests.get("https://aeprojecthub.in/updateFlag1.php?id=5&val=4")
             st.warning("Fan Command: OFF Sent")
 
     st.divider()
