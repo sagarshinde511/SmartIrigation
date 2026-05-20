@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import mysql.connector
 import plotly.express as px
-import requests  # Ensure you add 'import requests' at the top of your script
+import requests 
 
 # Database credentials
 DB_CONFIG = {
@@ -53,8 +53,8 @@ def fetch_latest_data():
     try:
         conn = mysql.connector.connect(**DB_CONFIG)
         cursor = conn.cursor(dictionary=True)
-        # Added SunLight to the SELECT statement
-        query = "SELECT id, dateTime, temp, humi, moi, moi2, coGas, SunLight FROM Irrigation ORDER BY id DESC LIMIT 1"
+        # UPDATED: Matching the database schema provided in the image
+        query = "SELECT id, dateTime, temp, humi, moi, moi2, moi3, moi4 FROM Irrigation ORDER BY id DESC LIMIT 1"
         cursor.execute(query)
         latest_data = cursor.fetchone()
         cursor.close()
@@ -68,8 +68,8 @@ def fetch_all_data():
     try:
         conn = mysql.connector.connect(**DB_CONFIG)
         cursor = conn.cursor(dictionary=True)
-        # Added SunLight to the SELECT statement
-        query = "SELECT dateTime, temp, humi, moi, moi2, coGas, SunLight FROM Irrigation ORDER BY dateTime ASC"
+        # UPDATED: Matching the database schema provided in the image
+        query = "SELECT dateTime, temp, humi, moi, moi2, moi3, moi4 FROM Irrigation ORDER BY dateTime ASC"
         cursor.execute(query)
         data = cursor.fetchall()
         cursor.close()
@@ -78,7 +78,7 @@ def fetch_all_data():
         df = pd.DataFrame(data)
         
         # Convert VARCHAR columns to numeric for plotting
-        cols_to_fix = ['temp', 'humi', 'moi', 'moi2', 'coGas', 'SunLight']
+        cols_to_fix = ['temp', 'humi', 'moi', 'moi2', 'moi3', 'moi4']
         for col in cols_to_fix:
             if col in df.columns:
                 df[col] = pd.to_numeric(df[col], errors='coerce')
@@ -100,14 +100,14 @@ with tabs[0]:
     if latest_data:
         st.write(f"**Latest Data Timestamp:** {latest_data['dateTime']}")
         
-        # 6 Columns for the 6 active sensors in your table
+        # 6 Columns for the 6 active dynamic sensors (Temp, Humi, and 4 Moisture zones)
         col1, col2, col3, col4, col5, col6 = st.columns(6)
         with col1: st.metric(label="Temp", value=f"{latest_data['temp']}°C")
         with col2: st.metric(label="Humidity", value=f"{latest_data['humi']}%")
         with col3: st.metric(label="Moi 1", value=f"{latest_data['moi']}%")
         with col4: st.metric(label="Moi 2", value=f"{latest_data['moi2']}%")
-        with col5: st.metric(label="CO Gas", value=f"{latest_data['coGas']}")
-        with col6: st.metric(label="Sunlight", value=f"{latest_data['SunLight']}")
+        with col5: st.metric(label="Moi 3", value=f"{latest_data['moi3']}%")
+        with col6: st.metric(label="Moi 4", value=f"{latest_data['moi4']}%")
     else:
         st.error("No data found in the 'Irrigation' table.")
 
@@ -139,7 +139,6 @@ with tabs[2]:
     
     with c1:
         st.write("### 💧 Water Pump")
-        # Using buttons instead of sliders for a cleaner toggle feel
         if st.button("Turn Pump ON"):
             response = requests.get("https://aeprojecthub.in/updateFlag1.php?id=5&val=1")
             if response.status_code == 200:
@@ -148,21 +147,18 @@ with tabs[2]:
                 st.error("Failed to reach server.")
         
         if st.button("Turn Pump OFF"):
-            # Per your note: "post 1 from url to off it"
             response = requests.get("https://aeprojecthub.in/updateFlag1.php?id=5&val=2") 
             st.warning("Pump Command: OFF Sent")
 
     with c2:
         st.write("### 🌀 Exhaust Fan")
         if st.button("Turn Fan ON"):
-            # Per your note: "add 2 to turn on fan"
             response = requests.get("https://aeprojecthub.in/updateFlag1.php?id=5&val=3")
             st.success("Fan Command: ON Sent")
             
         if st.button("Turn Fan OFF"):
-            # Per your note: "post 3 to turn off fan"
             response = requests.get("https://aeprojecthub.in/updateFlag1.php?id=5&val=4")
             st.warning("Fan Command: OFF Sent")
 
     st.divider()
-    st.caption("Note: 'post 4' was mentioned for an undefined action, ensure your hardware is programmed to listen for these specific flag values.")
+    st.caption("Note: Ensure your hardware is programmed to listen for these specific flag values.")
